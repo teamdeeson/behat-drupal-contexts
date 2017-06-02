@@ -4,6 +4,7 @@
   "type": "project",
   "license": "GPL-2.0+",
   "require": {
+    "drupal/core": "^8.3",
     "drupal/drupal-extension": "^3.2"
   },
   "minimum-stability": "dev",
