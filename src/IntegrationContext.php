@@ -69,7 +69,7 @@ class IntegrationContext implements Context, SnippetAcceptingContext {
    */
   private function getFieldDefinitions($entityType, $bundle) {
     /** @var \Drupal\Core\Entity\EntityFieldManagerInterface $fieldManager */
-    $fieldManager = Drupal::service('entity_field.manager');
+    $fieldManager = \Drupal::service('entity_field.manager');
     $fieldDefinitions = $fieldManager->getFieldDefinitions($entityType, $bundle);
     return $fieldDefinitions;
   }
