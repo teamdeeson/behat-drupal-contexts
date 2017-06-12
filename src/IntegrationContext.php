@@ -9,6 +9,7 @@ use Drupal\Component\Utility\NestedArray;
 use Drupal\Core\Entity\Entity\EntityFormDisplay;
 use Drupal\Core\Field\FieldDefinitionInterface;
 use Drupal\field\Entity\FieldStorageConfig;
+use Exception;
 use Webmozart\Assert\Assert;
 
 /**
