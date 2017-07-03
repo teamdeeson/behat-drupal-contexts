@@ -184,4 +184,21 @@ class AdminContext extends AnonymousContext implements Context, SnippetAccepting
 
     throw new \Exception(sprintf('Found a row fieldset "%s", but no "%s" link on the page %s', $fieldsetText, $clickable, $this->getSession()->getCurrentUrl()));
   }
+
+  /**
+   * @When I click summary :summaryText
+   */
+  public function clickDetailsSummary($summaryText) {
+    $summaryElements = $this->getSession()->getPage()->findAll('css', 'summary');
+
+    foreach ($summaryElements as $element) {
+      if ($element->getText() === $summaryText) {
+        $element->click();
+        return;
+      }
+    }
+
+    throw new \Exception("No \"{$summaryText}\" summary found");
+  }
+
 }
