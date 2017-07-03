@@ -5,11 +5,15 @@ namespace TeamDeeson\Behat\Context;
 use Behat\Behat\Context\Context;
 use Behat\Behat\Context\SnippetAcceptingContext;
 use Drupal\node\Entity\NodeType;
+use Behat\Gherkin\Node\TableNode;
 
 /**
  * Defines application features from the specific context.
  */
 class AdminContext extends AnonymousContext implements Context, SnippetAcceptingContext {
+
+  /** @var array */
+  private $entities = [];
 
   /**
    * @Given /^I am on the add "([^"]*)" page$/
@@ -97,4 +101,87 @@ class AdminContext extends AnonymousContext implements Context, SnippetAccepting
     };
   }
 
+  /**
+   * Remove any created entities.
+   *
+   * @AfterScenario
+   */
+  public function cleanEntities() {
+    foreach ($this->entities as $entity_type => $entities) {
+      \Drupal::entityTypeManager()->getStorage($entity_type)->delete($entities);
+    }
+  }
+
+  /**
+   * @Given :entity_type entities:
+   */
+  public function mediaEntities($entity_type, TableNode $entityTable) {
+    if (empty($this->entities[$entity_type])) {
+      $this->entities[$entity_type] = [];
+    }
+
+    $storage = \Drupal::entityTypeManager()->getStorage($entity_type);
+    foreach ($entityTable->getHash() as $entityHash) {
+      $entity = $storage->create($entityHash);
+      $entity->save();
+      $this->entities[$entity_type][] = $entity;
+    }
+  }
+
+  /**
+   * Attempts to click a link in a details block containing giving text. This is
+   * for add/edit content forms containing media fields for instance.
+   *
+   * @Given I click :clickable in the fieldset containing :text
+   */
+  public function clickLinkInFieldset($clickable, $fieldsetText) {
+    $clickableElement = $this->assertClickableInFieldset($clickable, $fieldsetText);
+    $clickableElement->click();
+  }
+
+  /**
+   * @param string $text
+   *
+   * @return \Behat\Mink\Element\NodeElement[]
+   * @throws \Exception
+   */
+  private function findFieldsetsWithText($text) {
+    /** @var \Behat\Mink\Element\NodeElement[] $fieldsets */
+    $fieldsets = $this->getSession()->getPage()->findAll('css', 'fieldset, details');
+
+    $matches = [];
+    foreach ($fieldsets as $fieldset) {
+      if (strpos($fieldset->getText(), $text) !== FALSE) {
+        $matches[] = $fieldset;
+      }
+    }
+
+    if (empty($matches)) {
+      throw new \Exception(sprintf('Could not find a fieldset containing %s', $text));
+    }
+
+    return $matches;
+  }
+
+  /**
+   * Attempts to find a link in a details block containing giving text. This is
+   * for add/edit content forms containing media fields for instance.
+
+   * @then I (should )see the :clickable link/button in the fieldset containing :text
+   * @return ElementNode;
+   */
+  public function assertClickableInFieldset($clickable, $fieldsetText) {
+    $fieldsets = $this->findFieldsetsWithText($fieldsetText);
+
+    foreach ($fieldsets as $fieldset) {
+      if ($clickableElement = $fieldset->findLink($clickable)) {
+        return $clickableElement;
+      }
+      elseif ($clickableElement = $fieldset->findButton($clickable)) {
+        return $clickableElement;
+      }
+    }
+
+    throw new \Exception(sprintf('Found a row fieldset "%s", but no "%s" link on the page %s', $fieldsetText, $clickable, $this->getSession()->getCurrentUrl()));
+  }
 }
