@@ -201,4 +201,19 @@ class AdminContext extends AnonymousContext implements Context, SnippetAccepting
     throw new \Exception("No \"{$summaryText}\" summary found");
   }
 
+  /**
+   * @Then I should see :text in the entity browser
+   */
+  public function iShouldSeeInTheEntityBrowser($text) {
+    $this->getSession()->switchToIFrame('entity_browser_iframe_media');
+
+    try {
+      $this->assertTextVisible($text);
+    }
+    catch (\Exception $e) {
+      $this->getSession()->switchToWindow();
+      throw $e;
+    }
+  }
+
 }
