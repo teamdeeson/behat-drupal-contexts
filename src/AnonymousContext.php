@@ -77,4 +77,18 @@ class AnonymousContext extends MinkContext implements Context, SnippetAcceptingC
     throw new \Exception("No {$selector} element containing '{$text}' could be found.'");
   }
 
+  /**
+   * @Then I wait :time miliseconds for the page to load
+   */
+  public function iWaitMilisecondsForPageToLoad($time) {
+    $this->getSession()->wait($time);
+  }
+
+  /**
+   * @Then I wait for the page to load
+   */
+  public function iWaitForPageToLoad() {
+    $this->iWaitMilisecondsForPageToLoad(500);
+  }
+
 }
