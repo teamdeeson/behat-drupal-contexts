@@ -211,7 +211,7 @@ class AdminContext extends AnonymousContext implements Context, SnippetAccepting
   /**
    * @When I look in the main window
    */
-  public function switchToWindow($name) {
+  public function switchToWindow() {
     $this->getSession()->switchToWindow();
   }
 
