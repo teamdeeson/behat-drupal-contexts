@@ -202,18 +202,17 @@ class AdminContext extends AnonymousContext implements Context, SnippetAccepting
   }
 
   /**
-   * @Then I should see :text in the entity browser
+   * @When I look in the :name iframe
    */
-  public function iShouldSeeInTheEntityBrowser($text) {
-    $this->getSession()->switchToIFrame('entity_browser_iframe_media');
+  public function switchToIframe($name) {
+    $this->getSession()->switchToIFrame($name);
+  }
 
-    try {
-      $this->assertTextVisible($text);
-    }
-    catch (\Exception $e) {
-      $this->getSession()->switchToWindow();
-      throw $e;
-    }
+  /**
+   * @When I look in the main window
+   */
+  public function switchToWindow($name) {
+    $this->getSession()->switchToWindow();
   }
 
 }
