@@ -109,7 +109,12 @@ class AdminContext extends AnonymousContext implements Context, SnippetAccepting
    */
   public function cleanEntities() {
     foreach ($this->entities as $entity_type => $entities) {
-      \Drupal::entityTypeManager()->getStorage($entity_type)->delete($entities);
+      try {
+        \Drupal::entityTypeManager()->getStorage($entity_type)->delete($entities);
+      }
+      catch (\Exception $e) {
+        // Don't stop deleting entities when deletion fails for one entity type.
+      }
     }
   }
 
