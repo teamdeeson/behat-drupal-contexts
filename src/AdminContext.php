@@ -4,6 +4,7 @@ namespace TeamDeeson\Behat\Context;
 
 use Behat\Behat\Context\Context;
 use Behat\Behat\Context\SnippetAcceptingContext;
+use Drupal\file\Entity\File;
 use Drupal\node\Entity\NodeType;
 use Behat\Gherkin\Node\TableNode;
 
@@ -115,17 +116,68 @@ class AdminContext extends AnonymousContext implements Context, SnippetAccepting
   /**
    * @Given :entity_type entities:
    */
-  public function mediaEntities($entity_type, TableNode $entityTable) {
+  public function createEntities($entity_type, TableNode $entityTable) {
     if (empty($this->entities[$entity_type])) {
       $this->entities[$entity_type] = [];
     }
 
-    $storage = \Drupal::entityTypeManager()->getStorage($entity_type);
+    $entityStorage = \Drupal::entityTypeManager()->getStorage($entity_type);
+    $fieldDefinitions = \Drupal::entityManager()->getFieldStorageDefinitions($entity_type);
     foreach ($entityTable->getHash() as $entityHash) {
-      $entity = $storage->create($entityHash);
+      $entityHash = (array) $this->prepareEntity($entity_type, (object) $entityHash, $fieldDefinitions);
+
+      $entity = $entityStorage->create($entityHash);
       $entity->save();
       $this->entities[$entity_type][] = $entity;
     }
+  }
+
+  /**
+   * @param \stdClass $entity
+   * @param \Drupal\Core\Field\FieldDefinitionInterface[] $fieldDefinitions
+   *
+   * @return array
+   * @throws \Exception
+   */
+  private function prepareEntity($entityType, \stdClass $entity, array $fieldDefinitions) {
+    $entityTypeManager = \Drupal::entityTypeManager();
+    $entityKeys = $entityTypeManager->getStorage($entityType)->getEntityType()->getKeys();
+
+    foreach ($entity as $field => $value) {
+      if (!in_array($field, $entityKeys) && key_exists($field, $fieldDefinitions)) {
+        $definition = $fieldDefinitions[$field];
+
+        // Load any referenced files.
+        if ($definition->getType() === 'image') {
+          $fileStorage = $entityTypeManager->getStorage('file');
+          $files = $fileStorage->loadByProperties(['uri' => $value]);
+          if (empty($files)) {
+            throw new \Exception("No file with uri {$value} exists.");
+          }
+          else {
+            $entity->{$field} = end($files);
+          }
+        }
+
+        // Load any referenced entities.
+        if ($definition->getType() === 'entity_reference') {
+          $targetType = $definition->getSetting('target_type');
+          $entityStorage = \Drupal::entityTypeManager()
+            ->getStorage($targetType);
+          $labelKey = $entityStorage->getEntityType()->getKey('label');
+
+          $entities = $entityStorage->loadByProperties([$labelKey => $value]);
+          if (empty($entities)) {
+            throw new \Exception("No {$targetType} with {$labelKey} {$value} exists");
+          }
+          else {
+            $entity->{$field} = end($entities);
+          }
+        }
+      }
+    }
+
+    return $entity;
   }
 
   /**
