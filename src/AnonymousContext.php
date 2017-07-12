@@ -91,4 +91,26 @@ class AnonymousContext extends MinkContext implements Context, SnippetAcceptingC
     $this->iWaitMilisecondsForPageToLoad(500);
   }
 
+  /**
+   * @When I land on the :error error page
+   */
+  public function iLandOnThePage($error) {
+    switch ($error) {
+      case 404:
+        $this->getSession()->visit('/this-page-does-not-exist-for-sure-no-really-it-does-not');
+        break;
+
+      case 403:
+        // No production user should ever have access to the views configuration
+        // page. If you got here because you're testing as a user with
+        // super-user privileges, then turn around and rethink your approach,
+        // because no production user should EVER have superuser privileges.
+        $this->getSession()->visit('/admin/structure/views');
+        break;
+
+      default:
+        throw new \Exception("Invalid error code. Only 404 and 403 are supported");
+    }
+    $this->assertResponseStatus($error);
+  }
 }
