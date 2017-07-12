@@ -22,6 +22,7 @@ class AnonymousContext extends MinkContext implements Context, SnippetAcceptingC
    *   The css selector.
    * @param string $regionName
    *   The region name.
+   *
    * @throws \Exception
    */
   public function assertSelectorInRegion($selector, $regionName) {
@@ -29,7 +30,8 @@ class AnonymousContext extends MinkContext implements Context, SnippetAcceptingC
 
     $result = $regionObj->find('css', $selector);
     if (empty($result)) {
-      throw new \Exception(sprintf('No class "%s" in the "%s" region on the page %s', $selector, $regionName, $this->getSession()->getCurrentUrl()));
+      $currentUrl = $this->getSession()->getCurrentUrl();
+      throw new \Exception(sprintf('No class "%s" in the "%s" region on the page %s', $selector, $regionName, $currentUrl));
     }
   }
 
@@ -71,20 +73,13 @@ class AnonymousContext extends MinkContext implements Context, SnippetAcceptingC
 
     /** @var \Behat\Mink\Element\NodeElement $item */
     while ($item = array_shift($items)) {
-      $regex = '/'.preg_quote($text, '/').'/ui';
+      $regex = '/' . preg_quote($text, '/') . '/ui';
       if (preg_match($regex, $item->getText())) {
         return;
       }
     }
 
     throw new \Exception("No {$selector} element containing '{$text}' could be found.'");
-  }
-
-  /**
-   * @Then I wait :time miliseconds for the page to load
-   */
-  public function iWaitMilisecondsForPageToLoad($time) {
-    $this->getSession()->wait($time);
   }
 
   /**
@@ -95,12 +90,20 @@ class AnonymousContext extends MinkContext implements Context, SnippetAcceptingC
   }
 
   /**
+   * @Then I wait :time miliseconds for the page to load
+   */
+  public function iWaitMilisecondsForPageToLoad($time) {
+    $this->getSession()->wait($time);
+  }
+
+  /**
    * @When I land on the :error error page
    */
   public function iLandOnThePage($error) {
+    $path = '/';
     switch ($error) {
       case 404:
-        $this->getSession()->visit('/this-page-does-not-exist-for-sure-no-really-it-does-not');
+        $path = $this->locatePath('/this-page-does-not-exist-for-sure-no-really-it-does-not');
         break;
 
       case 403:
@@ -108,12 +111,14 @@ class AnonymousContext extends MinkContext implements Context, SnippetAcceptingC
         // page. If you got here because you're testing as a user with
         // super-user privileges, then turn around and rethink your approach,
         // because no production user should EVER have superuser privileges.
-        $this->getSession()->visit('/admin/structure/views');
+        $path = $this->locatePath('/admin/structure/views');
         break;
 
       default:
         throw new \Exception("Invalid error code. Only 404 and 403 are supported");
     }
+
+    $this->getSession()->visit($path);
     $this->assertResponseStatus($error);
   }
 
@@ -147,9 +152,10 @@ class AnonymousContext extends MinkContext implements Context, SnippetAcceptingC
   public function cleanEntities() {
     foreach ($this->entities as $entity_type => $entities) {
       try {
-        \Drupal::entityTypeManager()->getStorage($entity_type)->delete($entities);
-      }
-      catch (\Exception $e) {
+        \Drupal::entityTypeManager()
+          ->getStorage($entity_type)
+          ->delete($entities);
+      } catch (\Exception $e) {
         // Don't stop deleting entities when deletion fails for one entity type.
       }
     }
@@ -164,7 +170,8 @@ class AnonymousContext extends MinkContext implements Context, SnippetAcceptingC
     }
 
     $entityStorage = \Drupal::entityTypeManager()->getStorage($entity_type);
-    $fieldDefinitions = \Drupal::entityManager()->getFieldStorageDefinitions($entity_type);
+    $fieldDefinitions = \Drupal::entityManager()
+      ->getFieldStorageDefinitions($entity_type);
     foreach ($entityTable->getHash() as $entityHash) {
       $entityHash = (array) $this->prepareEntity($entity_type, (object) $entityHash, $fieldDefinitions);
 
@@ -183,7 +190,9 @@ class AnonymousContext extends MinkContext implements Context, SnippetAcceptingC
    */
   private function prepareEntity($entityType, \stdClass $entity, array $fieldDefinitions) {
     $entityTypeManager = \Drupal::entityTypeManager();
-    $entityKeys = $entityTypeManager->getStorage($entityType)->getEntityType()->getKeys();
+    $entityKeys = $entityTypeManager->getStorage($entityType)
+      ->getEntityType()
+      ->getKeys();
 
     foreach ($entity as $field => $value) {
       if (!in_array($field, $entityKeys) && key_exists($field, $fieldDefinitions)) {
@@ -221,4 +230,20 @@ class AnonymousContext extends MinkContext implements Context, SnippetAcceptingC
 
     return $entity;
   }
+
+  /**
+   * @Then I should see the :pattern pattern
+   */
+  public function assertPattern($pattern) {
+    if (preg_match($pattern, $this->getSession()->getPage()->getText())) {
+      return;
+    }
+
+    if (preg_match($pattern, $this->getSession()->getPage()->getHtml())) {
+      return;
+    }
+
+    throw new \Exception("Pattern {$pattern} was not matched anywhere on the page.");
+  }
+
 }
