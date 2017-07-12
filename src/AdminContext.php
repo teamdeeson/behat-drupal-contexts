@@ -33,7 +33,7 @@ class AdminContext extends AnonymousContext implements Context, SnippetAccepting
       }
     }
 
-    throw new Exception("Unknown content type: {$contentTypeName}");
+    throw new \Exception("Unknown content type: {$contentTypeName}");
   }
 
   /**
