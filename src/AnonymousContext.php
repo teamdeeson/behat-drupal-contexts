@@ -4,13 +4,16 @@ namespace TeamDeeson\Behat\Context;
 
 use Behat\Behat\Context\Context;
 use Behat\Behat\Context\SnippetAcceptingContext;
-use Behat\Mink\Exception\ElementTextException;
+use Behat\Gherkin\Node\TableNode;
 use Drupal\DrupalExtension\Context\MinkContext;
 
 /**
  * Defines application features from the specific context.
  */
 class AnonymousContext extends MinkContext implements Context, SnippetAcceptingContext {
+
+  /** @var array */
+  private $entities = [];
 
   /**
    * @Then I should see an element with the :selector selector in the :regionName region
@@ -112,5 +115,110 @@ class AnonymousContext extends MinkContext implements Context, SnippetAcceptingC
         throw new \Exception("Invalid error code. Only 404 and 403 are supported");
     }
     $this->assertResponseStatus($error);
+  }
+
+  /**
+   * @Given :menu_name menu items:
+   * | title     | url        |
+   * | Home      | /          |
+   * | Some page | /some-path |
+   */
+  public function menuItems($menu_name, TableNode $items) {
+    foreach ($items as $itemInfo) {
+      $menu_link = \Drupal::entityTypeManager()
+        ->getStorage('menu_link_content')
+        ->create([
+          'title' => $itemInfo['title'],
+          'link' => ['uri' => 'internal:' . $itemInfo['url']],
+          'menu_name' => $menu_name,
+          'expanded' => TRUE,
+        ]);
+      $menu_link->save();
+
+      $this->entities['menu_link_content'][] = $menu_link;
+    }
+  }
+
+  /**
+   * Remove any created entities.
+   *
+   * @AfterScenario
+   */
+  public function cleanEntities() {
+    foreach ($this->entities as $entity_type => $entities) {
+      try {
+        \Drupal::entityTypeManager()->getStorage($entity_type)->delete($entities);
+      }
+      catch (\Exception $e) {
+        // Don't stop deleting entities when deletion fails for one entity type.
+      }
+    }
+  }
+
+  /**
+   * @Given :entity_type entities:
+   */
+  public function createEntities($entity_type, TableNode $entityTable) {
+    if (empty($this->entities[$entity_type])) {
+      $this->entities[$entity_type] = [];
+    }
+
+    $entityStorage = \Drupal::entityTypeManager()->getStorage($entity_type);
+    $fieldDefinitions = \Drupal::entityManager()->getFieldStorageDefinitions($entity_type);
+    foreach ($entityTable->getHash() as $entityHash) {
+      $entityHash = (array) $this->prepareEntity($entity_type, (object) $entityHash, $fieldDefinitions);
+
+      $entity = $entityStorage->create($entityHash);
+      $entity->save();
+      $this->entities[$entity_type][] = $entity;
+    }
+  }
+
+  /**
+   * @param \stdClass $entity
+   * @param \Drupal\Core\Field\FieldDefinitionInterface[] $fieldDefinitions
+   *
+   * @return array
+   * @throws \Exception
+   */
+  private function prepareEntity($entityType, \stdClass $entity, array $fieldDefinitions) {
+    $entityTypeManager = \Drupal::entityTypeManager();
+    $entityKeys = $entityTypeManager->getStorage($entityType)->getEntityType()->getKeys();
+
+    foreach ($entity as $field => $value) {
+      if (!in_array($field, $entityKeys) && key_exists($field, $fieldDefinitions)) {
+        $definition = $fieldDefinitions[$field];
+
+        // Load any referenced files.
+        if ($definition->getType() === 'image') {
+          $fileStorage = $entityTypeManager->getStorage('file');
+          $files = $fileStorage->loadByProperties(['uri' => $value]);
+          if (empty($files)) {
+            throw new \Exception("No file with uri {$value} exists.");
+          }
+          else {
+            $entity->{$field} = end($files);
+          }
+        }
+
+        // Load any referenced entities.
+        if ($definition->getType() === 'entity_reference') {
+          $targetType = $definition->getSetting('target_type');
+          $entityStorage = \Drupal::entityTypeManager()
+            ->getStorage($targetType);
+          $labelKey = $entityStorage->getEntityType()->getKey('label');
+
+          $entities = $entityStorage->loadByProperties([$labelKey => $value]);
+          if (empty($entities)) {
+            throw new \Exception("No {$targetType} with {$labelKey} {$value} exists");
+          }
+          else {
+            $entity->{$field} = end($entities);
+          }
+        }
+      }
+    }
+
+    return $entity;
   }
 }
