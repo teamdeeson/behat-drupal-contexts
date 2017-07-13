@@ -135,6 +135,23 @@ class AdminContext extends AnonymousContext implements Context, SnippetAccepting
   }
 
   /**
+   * @When I fill in :value for :field in the fieldset containing :fieldset
+   */
+  public function fillFieldInFieldset($value, $field, $fieldset) {
+    foreach ($this->findFieldsetsWithText($fieldset) as $element) {
+      try {
+        $element->fillField($field, $value);
+        return;
+      }
+      catch (\Exception $e) {
+        // We ignore failures because we don't want a failure to stop the loop.
+      }
+    }
+
+    throw new ElementNotFoundException($this->getDriver(), 'form field', 'id|name|label|value|placeholder', $locator);
+  }
+
+  /**
    * Attempts to find a link in a details block containing giving text. This is
    * for add/edit content forms containing media fields for instance.
 
