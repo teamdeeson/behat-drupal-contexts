@@ -298,4 +298,27 @@ class AnonymousContext extends MinkContext implements Context, SnippetAcceptingC
     }
   }
 
+  /**
+   * @When I am viewing a :bundle :entity_type with :paragraph_type paragraph in :field_name:
+   */
+  public function viewingEntityWithParagraph($bundle, $entity_type, $paragraph_type, $field_name, TableNode $table) {
+    $entityTypeManager = \Drupal::entityTypeManager();
+    $entityStorage = $entityTypeManager->getStorage($entity_type);
+    $paragraphStorage = $entityTypeManager->getStorage('paragraph');
+
+    $labelKey = $entityTypeManager->getDefinition($entity_type)->getKey('label');
+    $bundleKey = $entityTypeManager->getDefinition($entity_type)->getKey('bundle');
+
+    $values = $table->getColumnsHash();
+    $paragraph = $paragraphStorage->create(['type' => $paragraph_type] + $values);
+
+    $entity = $entityStorage->create([
+      $labelKey => bin2hex(random_bytes(10)),
+      $bundleKey => $bundle,
+      $field_name => $paragraph,
+    ]);
+    $entity->save();
+
+    $this->getSession()->visit($this->locatePath($entity->toUrl()->toString()));
+  }
 }
