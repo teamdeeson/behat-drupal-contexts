@@ -203,4 +203,23 @@ class AdminContext extends AnonymousContext implements Context, SnippetAccepting
     $this->getSession()->switchToWindow();
   }
 
+  /**
+   * @Then I fill in :value for wysiwyg :locator
+   */
+  public function iFillInWysiwyg($value, $locator) {
+    $el = $this->getSession()->getPage()->findField($locator);
+
+    if (empty($el)) {
+      throw new \ExpectationException('Could not find WYSIWYG with locator: ' . $locator, $this->getSession());
+    }
+
+    $fieldId = $el->getAttribute('id');
+
+    if (empty($fieldId)) {
+      throw new \Exception('Could not find an id for field with locator: ' . $locator);
+    }
+
+    $this->getSession()
+      ->executeScript("CKEDITOR.instances[\"$fieldId\"].setData(\"$value\");");
+  }
 }
