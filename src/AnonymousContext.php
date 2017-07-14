@@ -246,4 +246,56 @@ class AnonymousContext extends MinkContext implements Context, SnippetAcceptingC
     throw new \Exception("Pattern {$pattern} was not matched anywhere on the page.");
   }
 
+  /**
+   * @When /^I scroll down (\d+) pixels$/
+   */
+  public function iScrollDownPixels($pixels) {
+    $this->getSession()->getDriver()->executeScript("scroll(0, {$pixels});");
+  }
+
+  /**
+   * @When /^I scroll up (\d+) pixels$/
+   */
+  public function iScrollUpPixels($pixels) {
+    $this->getSession()->getDriver()->executeScript("scroll(0, -{$pixels});");
+  }
+
+  /**
+   * @When /^I scroll to the top of the page$/
+   */
+  public function iScrollTop() {
+    $this->getSession()->getDriver()->executeScript("scroll(0, 0);");
+  }
+
+  /**
+   * @When I scroll the :selector element into view
+   */
+  public function iScrollIntoView($selector) {
+    $type = substr($selector, 0, 1);
+    $selector = substr($selector, 1);
+
+    switch ($type) {
+      case "#":
+        if (empty($this->getSession()->getPage()->findById($selector))) {
+          throw new \Exception("No element with id '{$selector}' found.'");
+        }
+        $this->getSession()
+          ->getDriver()
+          ->executeScript("document.getElementById('{$selector}').scrollIntoView(true);");
+        break;
+
+      case ".":
+        if (empty($this->getSession()->getPage()->find('css', ".$selector"))) {
+          throw new \Exception("No element with class '{$selector}' found.'");
+        }
+        $this->getSession()
+          ->getDriver()
+          ->executeScript("document.getElementsByClassName('{$selector}')[0].scrollIntoView(true);");
+
+        break;
+      default:
+        throw new \Exception("You should provide a class or id");
+    }
+  }
+
 }
