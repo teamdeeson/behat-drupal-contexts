@@ -7,6 +7,7 @@ use Behat\Behat\Context\SnippetAcceptingContext;
 use Drupal\file\Entity\File;
 use Drupal\node\Entity\NodeType;
 use Behat\Gherkin\Node\TableNode;
+use PHPUnit\Framework\AssertionFailedError;
 
 /**
  * Defines application features from the specific context.
@@ -154,8 +155,8 @@ class AdminContext extends AnonymousContext implements Context, SnippetAccepting
   /**
    * Attempts to find a link in a details block containing giving text. This is
    * for add/edit content forms containing media fields for instance.
-
-   * @then I (should )see the :clickable link/button in the fieldset containing :text
+   * @then I (should )see the :clickable link/button in the fieldset containing
+   *   :text
    * @return ElementNode;
    */
   public function assertClickableInFieldset($clickable, $fieldsetText) {
@@ -237,6 +238,30 @@ class AdminContext extends AnonymousContext implements Context, SnippetAccepting
       }
     }
     throw new \Exception("Tab '$tabName' couldn't be found");
+  }
+
+  /**
+   * @When I submit the modal
+   */
+  public function iSubmitTheModal() {
+    $modal = $this->getSession()->getPage()->find('css', '.ui-dialog');
+
+    if (empty($modal)) {
+      throw new AssertionFailedError("No active dialogs are open");
+    }
+
+    $submitLabels = ['Save'];
+
+    /** @var \Behat\Mink\Element\NodeElement[] $buttons */
+    $buttons = $modal->findAll('css', 'button, input[type=submit]');
+    foreach ($buttons as $button) {
+      if (in_array($button->getText(), $submitLabels)) {
+        $button->click();
+        return;
+      }
+    }
+
+    throw new AssertionFailedError("Unable to find a submit button");
   }
 
 }

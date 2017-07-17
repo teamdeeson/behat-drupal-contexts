@@ -90,9 +90,9 @@ class AnonymousContext extends MinkContext implements Context, SnippetAcceptingC
   }
 
   /**
-   * @Then I wait :time miliseconds for the page to load
+   * @Then I wait :time miliseconds
    */
-  public function iWaitMilisecondsForPageToLoad($time) {
+  public function iWaitMiliseconds($time) {
     $this->getSession()->wait($time);
   }
 
