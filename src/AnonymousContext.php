@@ -222,7 +222,8 @@ class AnonymousContext extends MinkContext implements Context, SnippetAcceptingC
             throw new \Exception("No {$targetType} with {$labelKey} {$value} exists");
           }
           else {
-            $entity->{$field} = [end($entities)];
+            $referencedEntity = end($entities);
+            $entity->{$field} = [['target_id' => $referencedEntity->id()]];
           }
         }
       }
