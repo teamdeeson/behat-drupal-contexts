@@ -170,10 +170,8 @@ class AnonymousContext extends MinkContext implements Context, SnippetAcceptingC
     }
 
     $entityStorage = \Drupal::entityTypeManager()->getStorage($entity_type);
-    $fieldDefinitions = \Drupal::entityManager()
-      ->getFieldStorageDefinitions($entity_type);
     foreach ($entityTable->getHash() as $entityHash) {
-      $entityHash = (array) $this->prepareEntity($entity_type, (object) $entityHash, $fieldDefinitions);
+      $entityHash = (array) $this->prepareEntity($entity_type, (object) $entityHash);
 
       $entity = $entityStorage->create($entityHash);
       $entity->save();
@@ -182,13 +180,15 @@ class AnonymousContext extends MinkContext implements Context, SnippetAcceptingC
   }
 
   /**
+   * @param string $entityType
    * @param \stdClass $entity
-   * @param \Drupal\Core\Field\FieldDefinitionInterface[] $fieldDefinitions
    *
    * @return array
    * @throws \Exception
    */
-  private function prepareEntity($entityType, \stdClass $entity, array $fieldDefinitions) {
+  private function prepareEntity($entityType, \stdClass $entity) {
+
+    $fieldDefinitions = \Drupal::entityManager()->getFieldStorageDefinitions($entityType);
     $entityTypeManager = \Drupal::entityTypeManager();
     $entityKeys = $entityTypeManager->getStorage($entityType)
       ->getEntityType()
@@ -309,8 +309,10 @@ class AnonymousContext extends MinkContext implements Context, SnippetAcceptingC
     $labelKey = $entityTypeManager->getDefinition($entity_type)->getKey('label');
     $bundleKey = $entityTypeManager->getDefinition($entity_type)->getKey('bundle');
 
-    $values = $table->getColumnsHash();
-    $paragraph = $paragraphStorage->create(['type' => $paragraph_type] + $values);
+    $values = ['type' => $paragraph_type] + $table->getRowsHash();
+    $preparedValues = (array) $this->prepareEntity('paragraph', (object) $values);
+    $paragraph = $paragraphStorage->create($preparedValues);
+    $paragraph->save();
 
     $entity = $entityStorage->create([
       $labelKey => bin2hex(random_bytes(10)),
