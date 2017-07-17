@@ -206,7 +206,7 @@ class AnonymousContext extends MinkContext implements Context, SnippetAcceptingC
             throw new \Exception("No file with uri {$value} exists.");
           }
           else {
-            $entity->{$field} = end($files);
+            $entity->{$field} = [end($files)];
           }
         }
 
@@ -222,7 +222,7 @@ class AnonymousContext extends MinkContext implements Context, SnippetAcceptingC
             throw new \Exception("No {$targetType} with {$labelKey} {$value} exists");
           }
           else {
-            $entity->{$field} = end($entities);
+            $entity->{$field} = [end($entities)];
           }
         }
       }
@@ -317,7 +317,7 @@ class AnonymousContext extends MinkContext implements Context, SnippetAcceptingC
     $entity = $entityStorage->create([
       $labelKey => bin2hex(random_bytes(10)),
       $bundleKey => $bundle,
-      $field_name => $paragraph,
+      $field_name => [$paragraph],
     ]);
     $entity->save();
 
