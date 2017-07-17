@@ -312,7 +312,12 @@ class AnonymousContext extends MinkContext implements Context, SnippetAcceptingC
     $values = ['type' => $paragraph_type] + $table->getRowsHash();
     $preparedValues = (array) $this->prepareEntity('paragraph', (object) $values);
     $paragraph = $paragraphStorage->create($preparedValues);
-    $paragraph->save();
+    try {
+      $paragraph->save();
+    }
+    catch (\Exception $e) {
+      echo print_r($paragraph, TRUE);
+    }
 
     $entity = $entityStorage->create([
       $labelKey => bin2hex(random_bytes(10)),
