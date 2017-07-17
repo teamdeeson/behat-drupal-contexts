@@ -316,6 +316,7 @@ class AnonymousContext extends MinkContext implements Context, SnippetAcceptingC
       $paragraph->save();
     }
     catch (\Exception $e) {
+      echo "Paragraph could not be saved: \n";
       echo print_r($paragraph, TRUE);
     }
 
@@ -324,7 +325,13 @@ class AnonymousContext extends MinkContext implements Context, SnippetAcceptingC
       $bundleKey => $bundle,
       $field_name => [$paragraph],
     ]);
-    $entity->save();
+    try {
+      $entity->save();
+    }
+    catch (\Exception $e) {
+      echo "Entity could not be saved: \n";
+      echo print_r($entity, TRUE);
+    }
 
     $this->getSession()->visit($this->locatePath($entity->toUrl()->toString()));
   }
