@@ -222,4 +222,21 @@ class AdminContext extends AnonymousContext implements Context, SnippetAccepting
     $this->getSession()
       ->executeScript("CKEDITOR.instances[\"$fieldId\"].setData(\"$value\");");
   }
+
+  /**
+   * @When I click the :tabName tab
+   */
+  public function iClickTheTab($tabName) {
+    /** @var \Behat\Mink\Element\NodeElement[] $tabs */
+    $tabs = $this->getSession()->getPage()->findAll('css', '.vertical-tabs__menu, .horizontal-tabs__menu');
+
+    foreach ($tabs as $tab) {
+      if ($tab->findLink($tabName)) {
+        $tab->findLink($tabName)->click();
+        return;
+      }
+    }
+    throw new \Exception("Tab '$tabName' couldn't be found");
+  }
+
 }
