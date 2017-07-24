@@ -268,6 +268,13 @@ class AnonymousContext extends MinkContext implements Context, SnippetAcceptingC
   }
 
   /**
+   * @When /^I scroll to the bottom of the page$/
+   */
+  public function iScrollBottom() {
+    $this->getSession()->getDriver()->executeScript("window.scrollTo(0,document.body.scrollHeight);");
+  }
+
+  /**
    * @When I scroll the :selector element into view
    */
   public function iScrollIntoView($selector) {
