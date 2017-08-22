@@ -153,6 +153,49 @@ class AdminContext extends AnonymousContext implements Context, SnippetAccepting
   }
 
   /**
+   * @When I fill in :value for :field in the table titled :title
+   */
+  public function fillFieldInTable($value, $field, $title) {
+    foreach ($this->findTableWithTitle($title) as $element) {
+      try {
+        $element->fillField($field, $value);
+        return;
+      }
+      catch (\Exception $e) {
+        // We ignore failures because we don't want a failure to stop the loop.
+      }
+    }
+
+    throw new ElementNotFoundException($this->getDriver(), 'form field', 'id|name|label|value|placeholder', $locator);
+  }
+
+
+  /**
+   * @param string $text
+   *
+   * @return \Behat\Mink\Element\NodeElement[]
+   * @throws \Exception
+   */
+  private function findTableWithTitle($text) {
+    /** @var \Behat\Mink\Element\NodeElement[] $tables */
+    $tables = $this->getSession()->getPage()->findAll('css', 'table');
+
+    $matches = [];
+    foreach ($tables as $table) {
+      $tableHeader = $table->find('css','thead');
+      if (strpos($tableHeader->getText(), $text) !== FALSE) {
+        $matches[] = $table;
+      }
+    }
+
+    if (empty($matches)) {
+      throw new \Exception(sprintf('Could not find a fieldset containing %s', $text));
+    }
+
+    return $matches;
+  }
+
+  /**
    * Attempts to find a link in a details block containing giving text. This is
    * for add/edit content forms containing media fields for instance.
    * @then I (should )see the :clickable link/button in the fieldset containing
