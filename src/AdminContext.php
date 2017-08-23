@@ -123,8 +123,17 @@ class AdminContext extends AnonymousContext implements Context, SnippetAccepting
 
     $matches = [];
     foreach ($fieldsets as $fieldset) {
-      if (strpos($fieldset->getText(), $text) !== FALSE) {
+      $summary = $fieldset->find('css', 'summary');
+      if ($summary && $summary->getText() === $text) {
         $matches[] = $fieldset;
+      }
+    }
+
+    if (empty($matches)) {
+      foreach ($fieldsets as $fieldset) {
+        if (strpos($fieldset->getText(), $text) !== FALSE) {
+          $matches[] = $fieldset;
+        }
       }
     }
 
