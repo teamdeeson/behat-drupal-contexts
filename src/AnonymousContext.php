@@ -311,21 +311,11 @@ class AnonymousContext extends MinkContext implements Context, SnippetAcceptingC
   public function viewingEntityWithParagraph($bundle, $entity_type, $paragraph_type, $field_name, TableNode $table) {
     $entityTypeManager = \Drupal::entityTypeManager();
     $entityStorage = $entityTypeManager->getStorage($entity_type);
-    $paragraphStorage = $entityTypeManager->getStorage('paragraph');
 
     $labelKey = $entityTypeManager->getDefinition($entity_type)->getKey('label');
     $bundleKey = $entityTypeManager->getDefinition($entity_type)->getKey('bundle');
 
-    $values = ['type' => $paragraph_type] + $table->getRowsHash();
-    $preparedValues = (array) $this->prepareEntity('paragraph', (object) $values);
-    $paragraph = $paragraphStorage->create($preparedValues);
-    try {
-      $paragraph->save();
-    }
-    catch (\Exception $e) {
-      echo "Paragraph could not be saved: \n";
-      echo print_r($paragraph, TRUE);
-    }
+    $paragraph = $this->createParagraph($paragraph_type, $table);
 
     $entity = $entityStorage->create([
       $labelKey => bin2hex(random_bytes(10)),
@@ -334,6 +324,7 @@ class AnonymousContext extends MinkContext implements Context, SnippetAcceptingC
     ]);
     try {
       $entity->save();
+      $this->entities[$entity_type][] = $entity;
     }
     catch (\Exception $e) {
       echo "Entity could not be saved: \n";
@@ -341,5 +332,66 @@ class AnonymousContext extends MinkContext implements Context, SnippetAcceptingC
     }
 
     $this->getSession()->visit($this->locatePath($entity->toUrl()->toString()));
+  }
+
+  /**
+   * @param $paragraph_type
+   * @param \Behat\Gherkin\Node\TableNode $table
+   *
+   * @return \Drupal\Core\Entity\EntityInterface
+   */
+  private function createParagraph($paragraph_type, TableNode $table) {
+    $paragraphStorage = \Drupal::entityTypeManager()->getStorage('paragraph');
+    $values = ['type' => $paragraph_type] + $table->getRowsHash();
+    $preparedValues = (array) $this->prepareEntity('paragraph', (object) $values);
+    $paragraph = $paragraphStorage->create($preparedValues);
+    try {
+      $paragraph->save();
+    } catch (\Exception $e) {
+      echo "Paragraph could not be saved: \n";
+      echo print_r($paragraph, TRUE);
+    }
+    return $paragraph;
+  }
+
+  /**
+   * @Given a :paragraph_type paragraph on :field_name of :entity_type :index:
+   */
+  public function paragraphOnEntityField($paragraph_type, $field_name, $entity_type, $index, \Behat\Gherkin\Node\TableNode $paragraph_table) {
+    $entityTypeManager = \Drupal::entityTypeManager();
+    if (!$entityTypeManager->getStorage('paragraphs_type')->load($paragraph_type)) {
+      throw new \Exception("Unknown paragraphs type: $paragraph_type");
+    }
+
+    if (!isset($this->entities[$entity_type][$index])) {
+      throw new \Exception("No $entity_type created for index $index");
+    }
+
+    /** @var \Drupal\Core\Entity\ContentEntityInterface $entity */
+    $entity = $this->entities[$entity_type][$index];
+    if (!$entity->hasField($field_name)) {
+      throw new \Exception("The $entity_type at index $index does not have a $field_name field");
+    }
+
+    $paragraph = $this->createParagraph($paragraph_type, $paragraph_table);
+    $entity->{$field_name}[] = $paragraph;
+
+    $entity->save();
+    $this->entities['paragraph'][] = $paragraph;
+  }
+
+  /**
+   * @Given I am viewing :entity_type :index
+   */
+  public function viewEntityWithIndex($entity_type, $index) {
+    $entityTypeManager = \Drupal::entityTypeManager();
+
+    if (!isset($this->entities[$entity_type][$index])) {
+      throw new \Exception("No $entity_type created for index $index");
+    }
+
+    /** @var \Drupal\Core\Entity\ContentEntityInterface $entity */
+    $entity = $this->entities[$entity_type][$index];
+    $this->visitPath($entity->toUrl()->toString());
   }
 }
