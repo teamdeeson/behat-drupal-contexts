@@ -342,7 +342,7 @@ class AnonymousContext extends MinkContext implements Context, SnippetAcceptingC
    */
   private function createParagraph($paragraph_type, TableNode $table) {
     $paragraphStorage = \Drupal::entityTypeManager()->getStorage('paragraph');
-    $values = ['type' => $paragraph_type] + $table->getRowsHash();
+    $values = ['type' => $paragraph_type] + $this->parseMultiColumnFields($table->getRowsHash());
     $preparedValues = (array) $this->prepareEntity('paragraph', (object) $values);
     $paragraph = $paragraphStorage->create($preparedValues);
     try {
@@ -352,6 +352,26 @@ class AnonymousContext extends MinkContext implements Context, SnippetAcceptingC
       echo print_r($paragraph, TRUE);
     }
     return $paragraph;
+  }
+
+  protected function parseMultiColumnFields(array $fields) {
+    foreach ($fields as $name => $value) {
+      $colonPosition = strpos($name, ':');
+      if ($colonPosition !== FALSE) {
+        $fieldName = substr($name, 0, $colonPosition);
+        $columnName = substr($name, $colonPosition + 1);
+        $fields[$fieldName][$columnName] = $value;
+        unset($fields[$name]);
+      }
+    }
+
+    foreach ($fields as $name => $value) {
+      if (is_array($value)) {
+        $fields[$name] = $this->parseMultiColumnFields($fields[$name]);
+      }
+    }
+
+    return $fields;
   }
 
   /**
