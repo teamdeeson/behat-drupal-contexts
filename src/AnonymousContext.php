@@ -188,7 +188,8 @@ class AnonymousContext extends MinkContext implements Context, SnippetAcceptingC
    */
   private function prepareEntity($entityType, \stdClass $entity) {
 
-    $fieldDefinitions = \Drupal::entityManager()->getFieldStorageDefinitions($entityType);
+    $fieldDefinitions = \Drupal::entityManager()
+      ->getFieldStorageDefinitions($entityType);
     $entityTypeManager = \Drupal::entityTypeManager();
     $entityKeys = $entityTypeManager->getStorage($entityType)
       ->getEntityType()
@@ -271,7 +272,9 @@ class AnonymousContext extends MinkContext implements Context, SnippetAcceptingC
    * @When /^I scroll to the bottom of the page$/
    */
   public function iScrollBottom() {
-    $this->getSession()->getDriver()->executeScript("window.scrollTo(0,document.body.scrollHeight);");
+    $this->getSession()
+      ->getDriver()
+      ->executeScript("window.scrollTo(0,document.body.scrollHeight);");
   }
 
   /**
@@ -312,8 +315,10 @@ class AnonymousContext extends MinkContext implements Context, SnippetAcceptingC
     $entityTypeManager = \Drupal::entityTypeManager();
     $entityStorage = $entityTypeManager->getStorage($entity_type);
 
-    $labelKey = $entityTypeManager->getDefinition($entity_type)->getKey('label');
-    $bundleKey = $entityTypeManager->getDefinition($entity_type)->getKey('bundle');
+    $labelKey = $entityTypeManager->getDefinition($entity_type)
+      ->getKey('label');
+    $bundleKey = $entityTypeManager->getDefinition($entity_type)
+      ->getKey('bundle');
 
     $paragraph = $this->createParagraph($paragraph_type, $table);
 
@@ -325,8 +330,7 @@ class AnonymousContext extends MinkContext implements Context, SnippetAcceptingC
     try {
       $entity->save();
       $this->entities[$entity_type][] = $entity;
-    }
-    catch (\Exception $e) {
+    } catch (\Exception $e) {
       echo "Entity could not be saved: \n";
       echo print_r($entity, TRUE);
     }
@@ -379,7 +383,8 @@ class AnonymousContext extends MinkContext implements Context, SnippetAcceptingC
    */
   public function paragraphOnEntityField($paragraph_type, $field_name, $entity_type, $index, \Behat\Gherkin\Node\TableNode $paragraph_table) {
     $entityTypeManager = \Drupal::entityTypeManager();
-    if (!$entityTypeManager->getStorage('paragraphs_type')->load($paragraph_type)) {
+    if (!$entityTypeManager->getStorage('paragraphs_type')
+      ->load($paragraph_type)) {
       throw new \Exception("Unknown paragraphs type: $paragraph_type");
     }
 
@@ -414,4 +419,19 @@ class AnonymousContext extends MinkContext implements Context, SnippetAcceptingC
     $entity = $this->entities[$entity_type][$index];
     $this->visitPath($entity->toUrl()->toString());
   }
+
+  /**
+   * @Then I should not see the button :button in the :region( region)
+   * @Then I should not see the :button button in the :region( region)
+   */
+  public function assertRegionButton($button, $region) {
+    $regionObj = $this->getRegion($region);
+
+    $buttonObj = $regionObj->findButton($button);
+    if (!empty($buttonObj)) {
+      throw new \Exception(sprintf("The button '%s' was found in the region %s on the page %s", $button, $region, $this->getSession()
+        ->getCurrentUrl()));
+    }
+  }
+
 }
