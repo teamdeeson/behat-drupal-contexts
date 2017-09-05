@@ -229,7 +229,7 @@ class AnonymousContext extends MinkContext implements Context, SnippetAcceptingC
       }
     }
 
-    return $entity;
+    return $this->parseMultiColumnFields($entity);
   }
 
   /**
@@ -358,6 +358,13 @@ class AnonymousContext extends MinkContext implements Context, SnippetAcceptingC
     return $paragraph;
   }
 
+  /**
+   * @param array $fields
+   *   Array of fields to parse.
+   *
+   * @return array
+   *   The parsed array.
+   */
   protected function parseMultiColumnFields(array $fields) {
     foreach ($fields as $name => $value) {
       $colonPosition = strpos($name, ':');
