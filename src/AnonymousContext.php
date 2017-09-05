@@ -171,7 +171,7 @@ class AnonymousContext extends MinkContext implements Context, SnippetAcceptingC
 
     $entityStorage = \Drupal::entityTypeManager()->getStorage($entity_type);
     foreach ($entityTable->getHash() as $entityHash) {
-      $entityHash = (array) $this->prepareEntity($entity_type, (object) $entityHash);
+      $entityHash = $this->prepareEntity($entity_type, $entityHash);
 
       $entity = $entityStorage->create($entityHash);
       $entity->save();
@@ -181,12 +181,12 @@ class AnonymousContext extends MinkContext implements Context, SnippetAcceptingC
 
   /**
    * @param string $entityType
-   * @param \stdClass $entity
+   * @param array $entity
    *
    * @return array
    * @throws \Exception
    */
-  private function prepareEntity($entityType, \stdClass $entity) {
+  private function prepareEntity($entityType, array $entity) {
 
     $fieldDefinitions = \Drupal::entityManager()
       ->getFieldStorageDefinitions($entityType);
@@ -207,7 +207,7 @@ class AnonymousContext extends MinkContext implements Context, SnippetAcceptingC
             throw new \Exception("No file with uri {$value} exists.");
           }
           else {
-            $entity->{$field} = [end($files)];
+            $entity[$field] = [end($files)];
           }
         }
 
@@ -223,7 +223,7 @@ class AnonymousContext extends MinkContext implements Context, SnippetAcceptingC
             throw new \Exception("No {$targetType} with {$labelKey} {$value} exists");
           }
           else {
-            $entity->{$field} = [end($entities)];
+            $entity[$field] = [end($entities)];
           }
         }
       }
@@ -347,7 +347,7 @@ class AnonymousContext extends MinkContext implements Context, SnippetAcceptingC
   private function createParagraph($paragraph_type, TableNode $table) {
     $paragraphStorage = \Drupal::entityTypeManager()->getStorage('paragraph');
     $values = ['type' => $paragraph_type] + $this->parseMultiColumnFields($table->getRowsHash());
-    $preparedValues = (array) $this->prepareEntity('paragraph', (object) $values);
+    $preparedValues = $this->prepareEntity('paragraph', $values);
     $paragraph = $paragraphStorage->create($preparedValues);
     try {
       $paragraph->save();
