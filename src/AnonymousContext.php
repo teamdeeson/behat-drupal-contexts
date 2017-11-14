@@ -439,6 +439,7 @@ class AnonymousContext extends MinkContext implements Context, SnippetAcceptingC
 
     /** @var \Drupal\Core\Entity\ContentEntityInterface $entity */
     $entity = $this->entities[$entity_type][$index];
+    $entityTypeManager->getViewBuilder($entity_type)->resetCache();
     $this->visitPath($entity->toUrl()->toString());
   }
 
